@@ -1,10 +1,10 @@
 import React from 'react';
 import Connect4 from './lib';
+import {deepstream} from '../../../vendor/deepstream'
 
 // Components
 import Board from './board';
 import BoardStatus from './board-status';
-
 
 export default class Connect4Component extends React.Component {
 
@@ -12,13 +12,13 @@ export default class Connect4Component extends React.Component {
     super();
 
     this.state = {
-      board: new Connect4.Board()
+      board: new Connect4.Board(this.props.dsclient, this.props.player)
     };
   }
 
   handleGameRestart() {
     this.setState({
-      board: new Connect4.Board()
+      board: new Connect4.Board(this.props.client, this.props.player)
     });
   }
 
@@ -55,3 +55,12 @@ export default class Connect4Component extends React.Component {
   }
 
 }
+
+/**
+ * Required properties
+ * @type {Object}
+ */
+Connect4.propTypes = {
+  dsclient: React.PropTypes.instanceOf(deepstream),
+  player: React.PropTypes.object.isRequired
+};

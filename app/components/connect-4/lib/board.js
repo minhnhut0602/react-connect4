@@ -9,39 +9,90 @@ export default class Board {
    * Board constructor
    * @return {Void}
    */
-  constructor() {
+  constructor(dsclient, player) {
+    /**
+     * Ref this
+     */
+    const boardRef = this;
+
+    /**
+     * Deepstream client
+     */
+    boardRef.dsclient = dsclient;
+    
+    /**
+     * Player object
+     */
+    tboardRefhis.player = player;
 
     /**
      * Multidimentional array containing our default empty grid
      * @type {Array}
      */
-    this.grid = [
-      [ 0, 0, 0, 0, 0, 0 ],
-      [ 0, 0, 0, 0, 0, 0 ],
-      [ 0, 0, 0, 0, 0, 0 ],
-      [ 0, 0, 0, 0, 0, 0 ],
-      [ 0, 0, 0, 0, 0, 0 ],
-      [ 0, 0, 0, 0, 0, 0 ],
-      [ 0, 0, 0, 0, 0, 0 ]
+    boardRef.grid = [
+      [0, 0, 0, 0, 0, 0],
+      [0, 0, 0, 0, 0, 0],
+      [0, 0, 0, 0, 0, 0],
+      [0, 0, 0, 0, 0, 0],
+      [0, 0, 0, 0, 0, 0],
+      [0, 0, 0, 0, 0, 0],
+      [0, 0, 0, 0, 0, 0]
     ];
 
     /**
      * Keeping track of how many pieces have been inserted
      * @type {Number}
      */
-    this.inserts = 0;
+    boardRef.inserts = 0;
+
+    /**
+     * Grid record
+     */
+    boardRef.boardRecord = boardRef.dsclient.record.getRecord('board')
+
+    if (boardRef.player.color === 'red') {
+      boardRef.dsclient.record.setData('board', {
+        grid: [
+          [0, 0, 0, 0, 0, 0],
+          [0, 0, 0, 0, 0, 0],
+          [0, 0, 0, 0, 0, 0],
+          [0, 0, 0, 0, 0, 0],
+          [0, 0, 0, 0, 0, 0],
+          [0, 0, 0, 0, 0, 0],
+          [0, 0, 0, 0, 0, 0]
+        ],
+        nextPlayer: 'blue',
+        redPlayerInserts: boardRef.inserts,
+        bluePlayerInserts: boardRef.inserts
+      })
+    }
+
+    boardRef.boardRecorfd.whenReady(() => {
+      boardRef.boardRecord.subscribe(board => {
+        boardRef.grid = board.grid
+        boardRef.nextPlayer = board.nextPlayer
+        boardRef.isActive = boardRef.nextPlayer === boardRef.player.color
+      })
+    })
 
     /**
      * String containing next player
      * @type {String}
      */
-    this.nextPlayer = refreshPlayer(this.inserts);
+    boardRef.nextPlayer = boardRef.player.color === 'red' ? 'blue' : 'red';
 
     /**
-     * Board is active by default (disables when somebody wins)
+     * Board is active for red players on start (disables when somebody wins)
      * @type {Boolean}
      */
-    this.isActive = true;
+    boardRef.isActive = boardRef.player.color === 'red' ? true : false;
+
+    boardRef.isWinner = false
+
+    boardRef.boardRecord.event.subscribe('game-over', data => {
+      boardRef.isActive = false
+      boardRef.isWinner = boardRef.player.color === data.winner
+    })
   }
 
 
@@ -69,15 +120,22 @@ export default class Board {
       // Adds piece to column cell
       column[cellIndex] = piece;
 
-      // Increase inserts count
-      this.inserts++;
+      const boardRef = this;
 
-      // Who's the next player?
-      this.nextPlayer = refreshPlayer(this.inserts);
+      // Increase inserts count
+      boardRef.inserts++;
+
+      boardRef.nextPlayer = refreshPlayer(this.inserts);
+
+      boardRef.boardRecord.set({
+        grid: boardRef.grid,
+        nextPlayer: boardRef.nextPlayer,
+        [boardRef.player.color + 'PlayerInserts']: boardRef.inserts
+      })
 
       // Makes board innactive if somebody won
-      if (this.didSomebodyWin()) {
-        this.isActive = false;
+      if (boardRef.didSomebodyWin()) {
+        boardRef.emit('winner', true)
       }
     }
   }

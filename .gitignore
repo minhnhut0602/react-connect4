@@ -2,3 +2,4 @@ node_modules
 coverage
 public/js
 public/stylesheets
+npm.debug-log
